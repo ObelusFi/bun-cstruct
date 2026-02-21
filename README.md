@@ -25,7 +25,17 @@ This library exists as a practical solution while waiting for an official Bun AP
 bun add @obelusfi/bun-cstruct
 ```
 
-add `"experimentalDecorators": true` to your `tsconfig.json`
+add
+
+```jsonc
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+  },
+}
+```
+
+to your `compilerOptions` in `tsconfig.json`
 
 ## Basic Usage
 

@@ -2,10 +2,32 @@
   "name": "@obelusfi/bun-cstruct",
   "module": "index.ts",
   "type": "module",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ObelusFi/bun-cstruct.git"
+  },
+  "files": [
+    "index.ts"
+  ],
+  "description": "A lightweight convenience layer for working with C structs in bun:ffi using TypeScript decorators.",
   "devDependencies": {
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
-  }
+  },
+  "license": "MIT",
+  "keywords": [
+    "bun",
+    "ffi",
+    "c-struct",
+    "typescript",
+    "decorators",
+    "native",
+    "pointer",
+    "struct",
+    "memory",
+    "interop"
+  ]
 }
