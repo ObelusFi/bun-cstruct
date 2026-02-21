@@ -1,4 +1,4 @@
-
+/// gcc -shared -fPIC -o libtest.dylib *.c
 static char string[] = "Hello world";
 
 struct Nested
@@ -24,6 +24,7 @@ struct SomeStruct
   struct Nested child;
   int k;
   struct Ref *ref;
+  double f64;
 };
 
 static struct Ref ref = {
@@ -50,9 +51,8 @@ static struct SomeStruct ret = {
     },
     .k = 69,
     .ref = &ref,
+    .f64 = 1.23456789,
 };
-
-/// gcc -shared -fPIC -o libtest.dylib *.c
 
 struct SomeStruct *getStruct()
 {

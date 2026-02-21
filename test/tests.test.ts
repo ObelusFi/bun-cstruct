@@ -1,7 +1,7 @@
 
 import { dlopen, type Pointer } from 'bun:ffi';
-import { test, expect, beforeAll, describe, afterAll } from 'bun:test'
-import { CStruct, chars, array, i32, f32, u32, u16, struct, ref, string, refPointer } from '../index';
+import { test, expect, beforeAll, describe, afterAll, } from 'bun:test'
+import { CStruct, chars, array, i32, f32, u32, u16, struct, ref, string, refPointer, f64 } from '../index';
 
 
 const {
@@ -47,6 +47,7 @@ class SomeStruct extends CStruct {
    * access it like (instance as any).$someReference
    */
   @refPointer $someReference!: Pointer;
+  @f64 f!: number;
 }
 
 
@@ -66,6 +67,27 @@ describe('Struct', () => {
     expect(s.b).toEqual(2);
     expect(s.c).toEqual(5);
     expect(s.k).toEqual(69);
+    expect(s.f).toBeCloseTo(1.23456789)
+  })
+
+  test('typechecks', () => {
+    expect(() => {
+      class T1 {
+        // @ts-expect-error Doesn't extend CStruct
+        @i32 num!: string;
+      }
+    }).toThrow()
+
+    class T2 extends CStruct {
+      // @ts-expect-error wrong type
+      @i32 num!: string;
+    }
+
+    class T3 extends CStruct {
+      @ref(i32) num!: number;
+      // @ts-expect-error pointer nums doesn't exist
+      @refPointer $nums!: Pointer
+    }
   })
 
   test("can access inline structs", () => {
@@ -139,7 +161,13 @@ describe('Struct', () => {
     expect(deref.pi).toBe(0);
     deref.pi = 3.1415
     expect(deref.pi).toBeCloseTo(3.1415);
+  })
 
+  test('Can overwrite nested', () => {
+    const n = Nested.new();
+    n.text = 'abc'
+    s.child = n;
+    expect(s.child.text).toBe("abc")
   })
 })
 
