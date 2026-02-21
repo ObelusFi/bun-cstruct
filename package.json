@@ -2,7 +2,7 @@
   "name": "@obelusfi/bun-cstruct",
   "module": "index.ts",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ObelusFi/bun-cstruct.git"

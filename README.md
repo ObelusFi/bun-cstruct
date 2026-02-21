@@ -87,6 +87,9 @@ class SomeStruct extends CStruct {
 import { dlopen, type Pointer } from "bun:ffi";
 
 const { symbols: lib, close } = dlopen("./libexample.dylib", {
+  initStruct: {
+    args: ["pointer"],
+  },
   doSomethingWithStruct: {
     args: ["pointer"],
   },
@@ -117,7 +120,19 @@ The static method `alloc(): Pointer` allows you to allocate memory for a struct 
 
 ```ts
 const ptr: Pointer = SomeStruct.alloc();
-lib.doSomethingWithStruct(ptr);
+lib.initStruct(ptr);
+```
+
+### Allocate and get an instance of a struct
+
+The static method `new<T>(): T` allocates a `T` and returns an instance of `T` you can use
+`T.pointerTo(insance):Pointer` to get a `Pointer`
+
+```ts
+const item: SomeStruct = SomeStruct.new();
+item.a = 42;
+const p: Pointer = SomeStruct.pointerTo(item);
+lib.doSomethingWithStruct(p);
 ```
 
 ### Get size of struct

@@ -1,6 +1,14 @@
 import { CString, type Pointer, read, ptr as pt, toBuffer } from 'bun:ffi';
 import { endianness } from 'os';
 
+type CheckRefPointer<T, K extends keyof T> = K extends `$${infer U}` ? U extends keyof T ? [] : [U] : [K];
+type Checks<T, K extends keyof T, Expected> = T[K] extends Expected ? [] : [Expected]
+type TypedDecorator<Expected> = <T extends CStruct, K extends keyof T>(target: T, key: K, ...property_and_decorator_type_mismatch: Checks<T, K, Expected>) => void;
+type Extract<T> = T extends TypedDecorator<infer U> ? U : never
+type Layout = {
+  cursor: number
+  alignment: number
+}
 
 function alignUp(n: number, alignment: number) {
   return (n + alignment - 1) & ~(alignment - 1);
@@ -10,7 +18,7 @@ const p = Symbol.for('p');
 const o = Symbol.for('o');
 const e = endianness();
 
-type Writes = keyof Buffer;
+
 
 const read2w = {
   "f32": `writeFloat${e}` as const,
@@ -22,17 +30,14 @@ const read2w = {
   'i64': `writeBigInt64${e}` as const,
   'u64': `writeBigUInt64${e}` as const,
 
-  'intptr': `writeUInt32${e}` as const, // see if we can find the size to use
-  'ptr': `writeBigUInt64${e}` as const, // see if we can find the size to use
+  'intptr': `writeUInt32${e}` as const,
+  'ptr': `writeBigUInt64${e}` as const,
 
   'i8': 'writeInt8' as const,
   'u8': 'writeUInt8' as const,
-} satisfies Record<keyof typeof read, Writes>;
+} satisfies Record<keyof typeof read, keyof Buffer>;
 
-type Layout = {
-  cursor: number
-  alignment: number
-}
+
 const layoutMap = new WeakMap<Function, Layout>();
 
 export abstract class CStruct {
@@ -66,6 +71,21 @@ export abstract class CStruct {
   static alloc(): Pointer {
     const buff = Buffer.alloc(this.size);
     return pt(buff);
+  }
+
+  static new<T extends typeof CStruct>(this: T): InstanceType<T> {
+    const p = this.alloc();
+    //@ts-ignore
+    return new this(p, 0);
+  }
+
+  static toBuffer(item: CStruct) {
+    const ctr = Object.getPrototypeOf(item).constructor as (typeof CStruct);
+    return toBuffer(item[p], 0, ctr.size);
+  }
+
+  static pointerTo(item: CStruct): Pointer {
+    return item[p]
   }
 
 
@@ -116,6 +136,10 @@ export function struct<T extends typeof CStruct>(cls: T) {
   const reader = (p: Pointer, offset: number) => {
     return cls.reader(p, offset);
   }
+  const writer = (v: any, p: Pointer, offset: number) => {
+    const buff = CStruct.toBuffer(v);
+    toBuffer(p, offset, cls.size).fill(buff)
+  }
   const deco = function (target: CStruct, key: string) {
     const ctr = target.constructor as typeof CStruct;
     const layout = ctr['getLayout']();
@@ -128,11 +152,10 @@ export function struct<T extends typeof CStruct>(cls: T) {
 
     Object.defineProperty(target, key, {
       get() {
-        const ptr: Pointer = this[p];
-        return reader(ptr, offset + this[o]);
+        return reader(this[p], offset + this[o]);
       },
       set(v) {
-        throw new Error("Can only write to fields");
+        writer(v, this[p], offset + this[o])
       },
       enumerable: true,
     });
@@ -358,8 +381,8 @@ export const i32 = primitiveDecorator(4, 'i32', 4) as TypedDecorator<number>;
 export const u32 = primitiveDecorator(4, 'u32', 4) as TypedDecorator<number>;
 export const f32 = primitiveDecorator(4, 'f32', 4) as TypedDecorator<number>;
 
-export const i64 = primitiveDecorator(8, 'i64', 8) as TypedDecorator<number>;
-export const u64 = primitiveDecorator(8, 'u64', 8) as TypedDecorator<number>;
+export const i64 = primitiveDecorator(8, 'i64', 8) as TypedDecorator<bigint>;
+export const u64 = primitiveDecorator(8, 'u64', 8) as TypedDecorator<bigint>;
 export const f64 = primitiveDecorator(8, 'f64', 8) as TypedDecorator<number>;
 
 export const ptr = primitiveDecorator(8, 'ptr', 8) as TypedDecorator<number>;
@@ -368,9 +391,3 @@ export const string = stringDecorator();
 
 
 export const refPointer = ((a: CStruct, b: string) => { }) as <T extends CStruct, K extends keyof T>(target: T, key: K, ...this_pointer_doesnt_exist_in_this_struct: CheckRefPointer<T, K>) => void;
-
-
-type CheckRefPointer<T, K extends keyof T> = K extends `$${infer U}` ? U extends keyof T ? [] : [U] : [K];
-type Checks<T, K extends keyof T, Expected> = T[K] extends Expected ? [] : [Expected]
-type TypedDecorator<Expected> = <T extends CStruct, K extends keyof T>(target: T, key: K, ...property_and_decorator_type_mismatch: Checks<T, K, Expected>) => void;
-type Extract<T> = T extends TypedDecorator<infer U> ? U : never
