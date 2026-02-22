@@ -280,13 +280,6 @@ The overhead is usually negligible compared to:
 
 If you are writing extremely tight loops where every nanosecond matters, raw buffer access may be more appropriate.
 
-## What This Library Is
-
-- A structured way to describe C memory layouts
-- A safer alternative to manual offset math
-- A developer-friendly wrapper around `bun:ffi`
-- A stopgap solution until Bun provides official struct support
-
 ## License
 
 MIT
