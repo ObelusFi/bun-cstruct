@@ -1,5 +1,5 @@
 import { CString, dlopen, type FFIFunction, type Library, type Pointer, read } from "bun:ffi"
-import { chars, CStruct, f32, u16, i32, u32, array, struct, u8, u64, i16, string, ptr as pt } from '../index';
+import { chars, CStruct, f32, u16, i32, u32, array, struct, u8, u64, i16, string } from '../index';
 import { endianness } from "node:os";
 
 const PTR_SIZE = 8;
@@ -131,6 +131,14 @@ export class ImageOther extends CStruct {
   @array(f32, 4) analogbalance!: number[];
 }
 
+
+/**
+ * To read the data you have to
+ * const i = lib.dcraw_make_mem_thumb()
+ * const pi = ProcessedImage.pointerTo(i)
+ * const buffer = toBuffer(pi, ProcessedImage.size, i.data_size);
+ */
+
 export class ProcessedImage extends CStruct {
   @u32 type!: number;
   @u16 height!: number;
@@ -138,6 +146,7 @@ export class ProcessedImage extends CStruct {
   @u16 colors!: number;
   @u16 bits!: number;
   @i32 data_size!: number;
+  // the rest of the data is here
 }
 
 export class DecoderInfo extends CStruct {
@@ -211,6 +220,7 @@ const ffiFuncs = {
  * lib.unpack_thumb();
  * lib.dcraw_ppm_tiff_writer('out.ppm');
  * lib.dcraw_thumb_writer('out.jpeg');
+ * lib.close() // if constructed without `using`
  * ```
  */
 
@@ -298,7 +308,6 @@ export class LibRaw {
   }
 
 
-
   version() {
     return this.lib.libraw_version().toString();
   }
@@ -341,48 +350,59 @@ export class LibRaw {
   unpack() {
     this.lib.libraw_unpack(this.rawProcessor)
   }
+
   dcraw_make_mem_thumb() {
     const ptr = this.lib.libraw_dcraw_make_mem_thumb(this.rawProcessor, this.errPtr);
     this.checkError();
     this.checkNullPtr(ptr);
     return new ProcessedImage(ptr);
   }
+
   get_iparams() {
     const ptr = this.lib.libraw_get_iparams(this.rawProcessor);
     this.checkNullPtr(ptr)
     return new Iparams(ptr)
   }
+
   get_iwidth() {
     return this.lib.libraw_get_iwidth(this.rawProcessor);
   }
+
   get_iheight() {
     return this.lib.libraw_get_iheight(this.rawProcessor);
   }
+
   get_raw_width() {
     return this.lib.libraw_get_raw_width(this.rawProcessor);
   }
+
   get_raw_height() {
     return this.lib.libraw_get_raw_height(this.rawProcessor);
   }
+
   get_lensinfo() {
     const ptr = this.lib.libraw_get_lensinfo(this.rawProcessor);
     this.checkNullPtr(ptr);
     return new LensInfo(ptr);
   }
+
   get_imgother() {
     const ptr = this.lib.libraw_get_imgother(this.rawProcessor);
     this.checkNullPtr(ptr);
     return new ImageOther(ptr);
   }
+
   dcraw_make_mem_image() {
     const ptr = this.lib.libraw_dcraw_make_mem_image(this.rawProcessor, this.errPtr);
     this.checkNullPtr(ptr)
     this.checkError()
     return new ProcessedImage(ptr);
   }
+
   dcraw_clear_mem(ptr: Pointer) {
     this.lib.libraw_dcraw_clear_mem(ptr);
   }
+
   get_decoder_info() {
     const info = DecoderInfo.new();
     const code = this.lib.libraw_get_decoder_info(this.rawProcessor, DecoderInfo.pointerTo(info));
@@ -399,6 +419,7 @@ export class LibRaw {
     const color = this.lib.libraw_COLOR(this.rawProcessor, row, col)
     return color;
   }
+
   subtract_black() {
     this.lib.libraw_subtract_black(this.rawProcessor)
   }
@@ -434,6 +455,7 @@ export class LibRaw {
   unpack_function_name() {
     return this.lib.libraw_unpack_function_name(this.rawProcessor).toString();
   }
+
   set_demosaic(value: number) {
     this.lib.libraw_set_demosaic(this.rawProcessor, value);
   }
@@ -477,9 +499,11 @@ export class LibRaw {
   get_cam_mul(index: number) {
     return this.lib.libraw_get_cam_mul(this.rawProcessor, index);
   }
+
   get_pre_mul(index: number) {
     return this.lib.libraw_get_pre_mul(this.rawProcessor, index);
   }
+
   get_rgb_cam(index1: number, index2: number) {
     return this.lib.libraw_get_rgb_cam(this.rawProcessor, index1, index2);
   }
